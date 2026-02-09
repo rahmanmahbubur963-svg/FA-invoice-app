@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Friends Association Invoice</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial; padding: 15px; background:#f4f6f9; }
+    h2 { text-align:center; }
+    input, select, button {
+      width:100%;
+      padding:10px;
+      margin:5px 0;
+      border-radius:6px;
+      border:1px solid #ccc;
+    }
+    button {
+      background:#0B3B2E;
+      color:white;
+      font-weight:bold;
+    }
+    .card {
+      background:white;
+      padding:10px;
+      margin-top:10px;
+      border-radius:8px;
+      box-shadow:0 2px 5px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body>
+
+<h2>Friends Association Invoice</h2>
+
+<input type="text" id="member" placeholder="Member Name">
+<input type="number" id="amount" placeholder="Amount">
+<select id="status">
+  <option value="Paid">Paid</option>
+  <option value="Unpaid">Unpaid</option>
+</select>
+
+<button onclick="createInvoice()">Create Invoice</button>
+
+<div id="invoiceList"></div>
+
+<script>
+let invoices = [];
+
+function createInvoice() {
+  let member = document.getElementById("member").value;
+  let amount = document.getElementById("amount").value;
+  let status = document.getElementById("status").value;
+
+  if(member === "" || amount === "") {
+    alert("Fill all fields");
+    return;
+  }
+
+  let invoiceNo = "FA_INV_" + (invoices.length + 1).toString().padStart(4,"0");
+
+  invoices.push({
+    invoiceNo,
+    member,
+    amount,
+    status
+  });
+
+  renderInvoices();
+}
+
+function renderInvoices() {
+  let list = document.getElementById("invoiceList");
+  list.innerHTML = "";
+
+  invoices.forEach(inv => {
+    list.innerHTML += `
+      <div class="card">
+        <strong>${inv.invoiceNo}</strong><br>
+        Member: ${inv.member}<br>
+        Amount: ৳ ${inv.amount}<br>
+        Status: ${inv.status}
+      </div>
+    `;
+  });
+}
+</script>
+
+</body>
+</html>
