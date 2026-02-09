@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Friends Association Invoice</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    body { font-family: Arial; padding: 20px; background:#f4f6f9; }
+    input, select, button { width:100%; padding:10px; margin:6px 0; }
+    button { background:#007bff; color:white; border:none; }
+    .box { background:white; padding:15px; margin-top:20px; border:1px solid #ddd; }
+    table { width:100%; margin-top:10px; border-collapse:collapse; }
+    td, th { border:1px solid #ddd; padding:8px; text-align:center; }
+    .danger { background:red; }
+    .edit { background:orange; }
+  </style>
+</head>
+
+<body>
+
+<h2>Friends Association Invoice System</h2>
+
+<!-- ================= LOGIN ================= -->
+
+<div id="loginBox" class="box">
+<h3>Admin Login</h3>
+<input type="email" id="loginEmail" placeholder="Email">
+<input type="password" id="loginPassword" placeholder="Password">
+<button onclick="login()">Login</button>
+</div>
+
+<!-- ================= MAIN APP ================= -->
+
+<div id="app" style="display:none;">
+
+<div class="box">
+<button onclick="logout()" class="danger">Logout</button>
+</div>
+
+<!-- MEMBER SECTION -->
+
+<div class="box">
+<h3>Add Member</h3>
+
+<input type="text" id="memberName" placeholder="Member Name">
+<input type="text" id="memberMobile" placeholder="Mobile Number">
+
+<button onclick="addMember()">Add Member</button>
+
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Mobile</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody id="memberTable"></tbody>
+</table>
+</div>
+
+<!-- INVOICE SECTION -->
+
+<div class="box">
+<h3>Create Invoice</h3>
+
+<select id="memberSelect">
+<option value="">Select Member</option>
+</select>
+
+<input type="number" id="amount" placeholder="Amount (৳)">
+<input type="text" id="purpose" placeholder="Purpose">
+
+<button onclick="generateInvoice()">Generate Invoice</button>
+
+<div id="invoiceBox"></div>
+</div>
+
+</div>
+
+<script>
+
+// ================= LOGIN =================
+
+const ADMIN_EMAIL = "admin@fa.com";
+const ADMIN_PASS = "12345";
+
+function login() {
+  let email = document.getElementById("loginEmail").value;
+  let pass = document.getElementById("loginPassword").value;
+
+  if(email === ADMIN_EMAIL && pass === ADMIN_PASS){
+    localStorage.setItem("isLoggedIn", "true");
+    showApp();
+  } else {
+    alert("Invalid Login");
+  }
+}
+
+function logout(){
+  localStorage.removeItem("isLoggedIn");
+  location.reload();
+}
+
+function showApp(){
+  document.getElementById("loginBox").style.display="none";
+  document.getElementById("app").style.display="block";
+}
+
+if(localStorage.getItem("isLoggedIn") === "true"){
+  showApp();
+}
+
+// ================= MEMBER SYSTEM =================
+
+let members = JSON.parse(localStorage.getItem("members")) || [];
+let editIndex = null;
+let invoiceCount = 1;
+let currentInvoiceNo = "";
+
+function saveMembers() {
+  localStorage.setItem("members", JSON.stringify(members));
+}
+
+function loadMembers() {
+  let table = document.getElementById("memberTable");
+  let select = document.getElementById("memberSelect");
+
+  table.innerHTML = "";
+  select.innerHTML = '<option value="">Select Member</option>';
+
+  members.forEach((m, index) => {
+    table.innerHTML += `
+      <tr>
+        <td>${m.name}</td>
+        <td>${m.mobile}</td>
+        <td>
+          <button class="edit" onclick="editMember(${index})">Edit</button>
+          <button class="danger" onclick="deleteMember(${index})">Delete</button>
+        </td>
+      </tr>
+    `;
+
+    select.innerHTML += `
+      <option value="${m.name} - ${m.mobile}">
+        ${m.name}
+      </option>
+    `;
+  });
+}
+
+function addMember() {
+  let name = document.getElementById("memberName").value;
+  let mobile = document.getElementById("memberMobile").value;
+
+  if (!name || !mobile) {
+    alert("Fill all fields");
+    return;
+  }
+
+  if(editIndex !== null){
+    members[editIndex] = {name, mobile};
+    editIndex = null;
+  } else {
+    members.push({ name, mobile });
+  }
+
+  saveMembers();
+  loadMembers();
+
+  document.getElementById("memberName").value = "";
+  document.getElementById("memberMobile").value = "";
+}
+
+function editMember(index){
+  document.getElementById("memberName").value = members[index].name;
+  document.getElementById("memberMobile").value = members[index].mobile;
+  editIndex = index;
+}
+
+function deleteMember(index){
+  if(confirm("Delete this member?")){
+    members.splice(index,1);
+    saveMembers();
+    loadMembers();
+  }
+}
+
+// ================= INVOICE =================
+
+function generateInvoice() {
+  let memberData = document.getElementById("memberSelect").value;
+  let amount = document.getElementById("amount").value;
+  let purpose = document.getElementById("purpose").value;
+
+  if (!memberData) {
+    alert("Select Member First");
+    return;
+  }
+
+  let parts = memberData.split(" - ");
+  let name = parts[0];
+  let mobile = parts[1];
+
+  currentInvoiceNo = "FA_INV_" + String(invoiceCount).padStart(4, '0');
+  let date = new Date().toLocaleDateString();
+
+  document.getElementById("invoiceBox").innerHTML = `
+    <h3>Invoice</h3>
+    <p><strong>Invoice No:</strong> ${currentInvoiceNo}</p>
+    <p><strong>Name:</strong> ${name}</p>
+    <p><strong>Mobile:</strong> ${mobile}</p>
+    <p><strong>Amount:</strong> ৳ ${amount}</p>
+    <p><strong>Purpose:</strong> ${purpose}</p>
+    <p><strong>Date:</strong> ${date}</p>
+    <svg id="barcode"></svg>
+    <br><br>
+    <button onclick="downloadPDF()">Download PDF</button>
+  `;
+
+  JsBarcode("#barcode", currentInvoiceNo);
+  invoiceCount++;
+}
+
+async function downloadPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  doc.text(document.getElementById("invoiceBox").innerText, 10, 10);
+  doc.save(currentInvoiceNo + ".pdf");
+}
+
+loadMembers();
+
+</script>
+
+</body>
+</html>
