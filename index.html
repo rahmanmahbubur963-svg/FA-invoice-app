@@ -3,26 +3,34 @@
 <head>
   <title>Friends Association Invoice</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Barcode Library -->
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+
+  <!-- PDF Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
   <style>
     body {
       font-family: Arial;
       padding: 20px;
       background: #f4f6f9;
     }
-    h2 {
-      text-align: center;
-    }
-    input, select, button {
+    h2 { text-align: center; }
+
+    select, input, button {
       width: 100%;
       padding: 10px;
       margin: 8px 0;
     }
+
     .invoice-box {
       background: white;
       padding: 15px;
       margin-top: 20px;
       border: 1px solid #ccc;
     }
+
     button {
       background: #007bff;
       color: white;
@@ -35,8 +43,14 @@
 
 <h2>Friends Association Invoice</h2>
 
-<input type="text" id="name" placeholder="Member Name">
-<input type="text" id="mobile" placeholder="Mobile Number">
+<!-- Member Dropdown -->
+<select id="member">
+  <option value="">Select Member</option>
+  <option value="Rahim - 01711111111">Rahim</option>
+  <option value="Karim - 01822222222">Karim</option>
+  <option value="Hasan - 01933333333">Hasan</option>
+</select>
+
 <input type="number" id="amount" placeholder="Amount (৳)">
 <input type="text" id="purpose" placeholder="Purpose">
 
@@ -46,28 +60,51 @@
 
 <script>
 let invoiceCount = 1;
+let currentInvoiceNo = "";
 
 function generateInvoice() {
-  let name = document.getElementById("name").value;
-  let mobile = document.getElementById("mobile").value;
+  let memberData = document.getElementById("member").value;
   let amount = document.getElementById("amount").value;
   let purpose = document.getElementById("purpose").value;
 
-  let invoiceNo = "FA_INV_" + String(invoiceCount).padStart(4, '0');
+  if (!memberData) {
+    alert("Select Member First");
+    return;
+  }
+
+  let parts = memberData.split(" - ");
+  let name = parts[0];
+  let mobile = parts[1];
+
+  currentInvoiceNo = "FA_INV_" + String(invoiceCount).padStart(4, '0');
   let date = new Date().toLocaleDateString();
 
   document.getElementById("invoice").innerHTML = `
     <h3>Invoice</h3>
-    <p><strong>Invoice No:</strong> ${invoiceNo}</p>
+    <p><strong>Invoice No:</strong> ${currentInvoiceNo}</p>
     <p><strong>Name:</strong> ${name}</p>
     <p><strong>Mobile:</strong> ${mobile}</p>
     <p><strong>Amount:</strong> ৳ ${amount}</p>
     <p><strong>Purpose:</strong> ${purpose}</p>
     <p><strong>Date:</strong> ${date}</p>
-    <button onclick="window.print()">Print</button>
+    <svg id="barcode"></svg>
+    <br><br>
+    <button onclick="downloadPDF()">Download PDF</button>
   `;
 
+  JsBarcode("#barcode", currentInvoiceNo);
+
   invoiceCount++;
+}
+
+async function downloadPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  let invoiceText = document.getElementById("invoice").innerText;
+
+  doc.text(invoiceText, 10, 10);
+  doc.save(currentInvoiceNo + ".pdf");
 }
 </script>
 
