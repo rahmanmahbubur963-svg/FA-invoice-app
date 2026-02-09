@@ -4,51 +4,52 @@
   <title>Friends Association Invoice</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Barcode Library -->
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
-
-  <!-- PDF Library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
   <style>
-    body {
-      font-family: Arial;
-      padding: 20px;
-      background: #f4f6f9;
-    }
-    h2 { text-align: center; }
-
-    select, input, button {
-      width: 100%;
-      padding: 10px;
-      margin: 8px 0;
-    }
-
-    .invoice-box {
-      background: white;
-      padding: 15px;
-      margin-top: 20px;
-      border: 1px solid #ccc;
-    }
-
-    button {
-      background: #007bff;
-      color: white;
-      border: none;
-    }
+    body { font-family: Arial; padding: 20px; background:#f4f6f9; }
+    h2 { text-align:center; }
+    input, select, button { width:100%; padding:10px; margin:6px 0; }
+    button { background:#007bff; color:white; border:none; }
+    .box { background:white; padding:15px; margin-top:20px; border:1px solid #ddd; }
+    table { width:100%; margin-top:10px; border-collapse:collapse; }
+    td, th { border:1px solid #ddd; padding:8px; text-align:center; }
   </style>
 </head>
 
 <body>
 
-<h2>Friends Association Invoice</h2>
+<h2>Friends Association Invoice System</h2>
 
-<!-- Member Dropdown -->
-<select id="member">
-  <option value="">Select Member</option>
-  <option value="Rahim - 01711111111">Rahim</option>
-  <option value="Karim - 01822222222">Karim</option>
-  <option value="Hasan - 01933333333">Hasan</option>
+<!-- ================= MEMBER ADD SECTION ================= -->
+
+<div class="box">
+<h3>Add Member</h3>
+
+<input type="text" id="memberName" placeholder="Member Name">
+<input type="text" id="memberMobile" placeholder="Mobile Number">
+
+<button onclick="addMember()">Add Member</button>
+
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Mobile</th>
+</tr>
+</thead>
+<tbody id="memberTable"></tbody>
+</table>
+</div>
+
+<!-- ================= INVOICE SECTION ================= -->
+
+<div class="box">
+<h3>Create Invoice</h3>
+
+<select id="memberSelect">
+<option value="">Select Member</option>
 </select>
 
 <input type="number" id="amount" placeholder="Amount (৳)">
@@ -56,14 +57,61 @@
 
 <button onclick="generateInvoice()">Generate Invoice</button>
 
-<div class="invoice-box" id="invoice"></div>
+<div id="invoiceBox"></div>
+</div>
 
 <script>
+
+let members = JSON.parse(localStorage.getItem("members")) || [];
 let invoiceCount = 1;
 let currentInvoiceNo = "";
 
+function saveMembers() {
+  localStorage.setItem("members", JSON.stringify(members));
+}
+
+function loadMembers() {
+  let table = document.getElementById("memberTable");
+  let select = document.getElementById("memberSelect");
+
+  table.innerHTML = "";
+  select.innerHTML = '<option value="">Select Member</option>';
+
+  members.forEach((m, index) => {
+    table.innerHTML += `
+      <tr>
+        <td>${m.name}</td>
+        <td>${m.mobile}</td>
+      </tr>
+    `;
+
+    select.innerHTML += `
+      <option value="${m.name} - ${m.mobile}">
+        ${m.name}
+      </option>
+    `;
+  });
+}
+
+function addMember() {
+  let name = document.getElementById("memberName").value;
+  let mobile = document.getElementById("memberMobile").value;
+
+  if (!name || !mobile) {
+    alert("Fill all fields");
+    return;
+  }
+
+  members.push({ name, mobile });
+  saveMembers();
+  loadMembers();
+
+  document.getElementById("memberName").value = "";
+  document.getElementById("memberMobile").value = "";
+}
+
 function generateInvoice() {
-  let memberData = document.getElementById("member").value;
+  let memberData = document.getElementById("memberSelect").value;
   let amount = document.getElementById("amount").value;
   let purpose = document.getElementById("purpose").value;
 
@@ -79,7 +127,7 @@ function generateInvoice() {
   currentInvoiceNo = "FA_INV_" + String(invoiceCount).padStart(4, '0');
   let date = new Date().toLocaleDateString();
 
-  document.getElementById("invoice").innerHTML = `
+  document.getElementById("invoiceBox").innerHTML = `
     <h3>Invoice</h3>
     <p><strong>Invoice No:</strong> ${currentInvoiceNo}</p>
     <p><strong>Name:</strong> ${name}</p>
@@ -93,19 +141,18 @@ function generateInvoice() {
   `;
 
   JsBarcode("#barcode", currentInvoiceNo);
-
   invoiceCount++;
 }
 
 async function downloadPDF() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
-
-  let invoiceText = document.getElementById("invoice").innerText;
-
-  doc.text(invoiceText, 10, 10);
+  doc.text(document.getElementById("invoiceBox").innerText, 10, 10);
   doc.save(currentInvoiceNo + ".pdf");
 }
+
+loadMembers();
+
 </script>
 
 </body>
