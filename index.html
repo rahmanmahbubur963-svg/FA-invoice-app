@@ -9,12 +9,13 @@
 
   <style>
     body { font-family: Arial; padding: 20px; background:#f4f6f9; }
-    h2 { text-align:center; }
     input, select, button { width:100%; padding:10px; margin:6px 0; }
     button { background:#007bff; color:white; border:none; }
     .box { background:white; padding:15px; margin-top:20px; border:1px solid #ddd; }
     table { width:100%; margin-top:10px; border-collapse:collapse; }
     td, th { border:1px solid #ddd; padding:8px; text-align:center; }
+    .danger { background:red; }
+    .edit { background:orange; }
   </style>
 </head>
 
@@ -22,7 +23,24 @@
 
 <h2>Friends Association Invoice System</h2>
 
-<!-- ================= MEMBER ADD SECTION ================= -->
+<!-- ================= LOGIN ================= -->
+
+<div id="loginBox" class="box">
+<h3>Admin Login</h3>
+<input type="email" id="loginEmail" placeholder="Email">
+<input type="password" id="loginPassword" placeholder="Password">
+<button onclick="login()">Login</button>
+</div>
+
+<!-- ================= MAIN APP ================= -->
+
+<div id="app" style="display:none;">
+
+<div class="box">
+<button onclick="logout()" class="danger">Logout</button>
+</div>
+
+<!-- MEMBER SECTION -->
 
 <div class="box">
 <h3>Add Member</h3>
@@ -37,13 +55,14 @@
 <tr>
 <th>Name</th>
 <th>Mobile</th>
+<th>Action</th>
 </tr>
 </thead>
 <tbody id="memberTable"></tbody>
 </table>
 </div>
 
-<!-- ================= INVOICE SECTION ================= -->
+<!-- INVOICE SECTION -->
 
 <div class="box">
 <h3>Create Invoice</h3>
@@ -60,9 +79,45 @@
 <div id="invoiceBox"></div>
 </div>
 
+</div>
+
 <script>
 
+// ================= LOGIN =================
+
+const ADMIN_EMAIL = "admin@fa.com";
+const ADMIN_PASS = "12345";
+
+function login() {
+  let email = document.getElementById("loginEmail").value;
+  let pass = document.getElementById("loginPassword").value;
+
+  if(email === ADMIN_EMAIL && pass === ADMIN_PASS){
+    localStorage.setItem("isLoggedIn", "true");
+    showApp();
+  } else {
+    alert("Invalid Login");
+  }
+}
+
+function logout(){
+  localStorage.removeItem("isLoggedIn");
+  location.reload();
+}
+
+function showApp(){
+  document.getElementById("loginBox").style.display="none";
+  document.getElementById("app").style.display="block";
+}
+
+if(localStorage.getItem("isLoggedIn") === "true"){
+  showApp();
+}
+
+// ================= MEMBER SYSTEM =================
+
 let members = JSON.parse(localStorage.getItem("members")) || [];
+let editIndex = null;
 let invoiceCount = 1;
 let currentInvoiceNo = "";
 
@@ -82,6 +137,10 @@ function loadMembers() {
       <tr>
         <td>${m.name}</td>
         <td>${m.mobile}</td>
+        <td>
+          <button class="edit" onclick="editMember(${index})">Edit</button>
+          <button class="danger" onclick="deleteMember(${index})">Delete</button>
+        </td>
       </tr>
     `;
 
@@ -102,13 +161,35 @@ function addMember() {
     return;
   }
 
-  members.push({ name, mobile });
+  if(editIndex !== null){
+    members[editIndex] = {name, mobile};
+    editIndex = null;
+  } else {
+    members.push({ name, mobile });
+  }
+
   saveMembers();
   loadMembers();
 
   document.getElementById("memberName").value = "";
   document.getElementById("memberMobile").value = "";
 }
+
+function editMember(index){
+  document.getElementById("memberName").value = members[index].name;
+  document.getElementById("memberMobile").value = members[index].mobile;
+  editIndex = index;
+}
+
+function deleteMember(index){
+  if(confirm("Delete this member?")){
+    members.splice(index,1);
+    saveMembers();
+    loadMembers();
+  }
+}
+
+// ================= INVOICE =================
 
 function generateInvoice() {
   let memberData = document.getElementById("memberSelect").value;
